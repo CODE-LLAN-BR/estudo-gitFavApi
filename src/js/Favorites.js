@@ -1,39 +1,60 @@
+import { GithubUser } from "./GithubUser.js"
+
 // classe que vai conter a lógica dos dados
 // como os dados serão estruturados 
 
 export class Favorites {
-    constructor(root){
+    constructor(root) {
         this.root = document.querySelector(root)
         this.load()
     }
 
+        //localStorage  Json Api
     load() {
-        this.entries = [{
-            login:'maykbrito',
-            name: 'Mayk Brito',
-            public_repos:'76',
-            followers:'120000'
-        },
-        {
-            login:'diego3g',
-            name: 'Diego Fernandes',
-            public_repos:'76',
-            followers:'120000'
-        },
-        {
-            login:'CODE-LLAN-BR',
-            name: 'Leonardo Nunes',
-            public_repos:'45',
-            followers:'120000'
-        }]
+        this.entries = JSON.parse(localStorage.getItem('@github-favorites:')) || []
+
+
+    }
+        //save localStorage
+
+    save() {
+        localStorage.setItem('@github-favorites:', JSON.stringify(this.entries))
     }
     
-    delete(user) {
+    async add(username) {
+        try {
 
+            const userExists =this.entries.find(entry => entry.login === username)
+
+            if(userExists){
+                throw new Error('Usuário já cadastrado')
+            }
+
+            const user = await GithubUser.search(username) 
+
+            if(user.login === undefined){
+                throw new Error('Usuário não encontrado!')
+            }
+
+            this.entries = [user,...this.entries]
+            this.update()
+            this.save()
+
+        }catch(error) {
+            alert(error.message)
+        }
+        
+        
+    }
+
+    delete(user) {
         // Higher-order functions ( map, filter, find, reduce)
         const filteredEntries = this.entries
         .filter(entry => entry.login !== user.login ) 
-        console.log(filteredEntries)
+        
+        this.entries = filteredEntries
+        this.update()
+        this.save()
     }
 }
 
@@ -47,6 +68,18 @@ export class FavoritesView extends Favorites {
         this.tbody = this.root.querySelector('tbody')
 
         this.update()
+        this.onadd()
+    }
+
+    onadd() {
+        const addButton = this.root.querySelector('.search button')
+
+        addButton.onclick = () => {
+            const { value } = this.root.querySelector('.search input')
+
+            this.add(value)
+
+        }
     }
 
     update() {
